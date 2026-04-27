@@ -722,6 +722,10 @@ async function handleWellKnownSkills(
     }
   }
 
+  // Kick off privacy check early so it runs in parallel with installation
+  const sourceIdentifier = wellKnownProvider.getSourceIdentifier(url);
+  const wellKnownPrivacyPromise = isSourcePrivate(sourceIdentifier).catch(() => null);
+
   spinner.start('Installing skills...');
 
   const results: {
@@ -755,19 +759,15 @@ async function handleWellKnownSkills(
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
-  // Track installation
-  const sourceIdentifier = wellKnownProvider.getSourceIdentifier(url);
-
   // Build skillFiles map: { skillName: sourceUrl }
   const skillFiles: Record<string, string> = {};
   for (const skill of selectedSkills) {
     skillFiles[skill.installName] = skill.sourceUrl;
   }
 
-  // Skip telemetry for private GitHub repos
-  const isPrivate = await isSourcePrivate(sourceIdentifier);
+  // Privacy promise was started before installation — should be resolved by now
+  const isPrivate = await wellKnownPrivacyPromise;
   if (isPrivate !== true) {
-    // Only send telemetry if repo is public (isPrivate === false) or we can't determine (null for non-GitHub sources)
     track({
       event: 'install',
       source: sourceIdentifier,
@@ -943,8 +943,18 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       `Source: ${parsed.type === 'local' ? parsed.localPath! : parsed.url}${parsed.ref ? ` @ ${pc.yellow(parsed.ref)}` : ''}${parsed.subpath ? ` (${parsed.subpath})` : ''}${parsed.skillFilter ? ` ${pc.dim('@')}${pc.cyan(parsed.skillFilter)}` : ''}`
     );
 
-    // Block openclaw sources unless explicitly opted in
+    // Kick off the repo privacy check early so it runs in parallel with
+    // cloning/discovering/installing. The result is only needed later for
+    // telemetry gating — it should never block user-visible output.
     const ownerRepoRaw = getOwnerRepo(parsed);
+    const repoPrivacyPromise: Promise<boolean | null> = (() => {
+      if (!ownerRepoRaw) return Promise.resolve(null);
+      const ownerRepo = parseOwnerRepo(ownerRepoRaw);
+      if (!ownerRepo) return Promise.resolve(null);
+      return isRepoPrivate(ownerRepo.owner, ownerRepo.repo).catch(() => null);
+    })();
+
+    // Block openclaw sources unless explicitly opted in
     const sourceOwner = ownerRepoRaw?.split('/')[0]?.toLowerCase();
     if (sourceOwner === 'openclaw' && !options.dangerouslyAcceptOpenclawRisks) {
       console.log();
@@ -1547,12 +1557,13 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     const isSSH = parsed.url.startsWith('git@');
     const lockSource = isSSH ? parsed.url : normalizedSource;
 
-    // Only track if we have a valid remote source and it's not a private repo
+    // Only track if we have a valid remote source and it's not a private repo.
+    // repoPrivacyPromise was started early (right after parsing) so it has
+    // already been running in parallel with the entire install — no stall here.
     if (normalizedSource) {
       const ownerRepo = parseOwnerRepo(normalizedSource);
       if (ownerRepo) {
-        // Check if repo is private - skip telemetry for private repos
-        const isPrivate = await isRepoPrivate(ownerRepo.owner, ownerRepo.repo);
+        const isPrivate = await repoPrivacyPromise;
         // Only send telemetry if repo is public (isPrivate === false)
         // If we can't determine (null), err on the side of caution and skip telemetry
         if (isPrivate === false) {
