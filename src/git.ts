@@ -26,14 +26,29 @@ export async function cloneRepo(url: string, ref?: string): Promise<string> {
     env: {
       ...process.env,
       GIT_TERMINAL_PROMPT: '0',
-      // Skills are text files (HTML/MD/JSON) and never LFS-tracked. Registry
-      // repos frequently track unrelated large media (test fixtures, demos,
-      // docs videos) via LFS. Downloading those during clone adds tens or
-      // hundreds of MB of bandwidth for files the installer never reads, and
-      // is the main reason `skills add` times out against larger registries
-      // (e.g. heygen-com/hyperframes, see upstream report #300).
+      // When git-lfs IS installed, tell it not to download LFS content
+      // during checkout. See #952 for context and empirical impact.
       GIT_LFS_SKIP_SMUDGE: '1',
     },
+    // When git-lfs is NOT installed, GIT_LFS_SKIP_SMUDGE has no effect —
+    // git sees `filter=lfs` in .gitattributes, tries to run
+    // `git-lfs filter-process`, and aborts the checkout with:
+    //   git-lfs filter-process: git-lfs: command not found
+    //   fatal: the remote end hung up unexpectedly
+    //   warning: Clone succeeded, but checkout failed.
+    // Overriding filter.lfs.* at the command level disables the filter
+    // entirely for this clone, so checkout succeeds regardless of whether
+    // git-lfs is installed. LFS-tracked files are left as ~130-byte
+    // pointer files, which the skills installer doesn't read anyway
+    // (skills are plain text — HTML/MD/JSON — never LFS-tracked).
+    //
+    // Reported downstream: heygen-com/hyperframes#407.
+    config: [
+      'filter.lfs.required=false',
+      'filter.lfs.smudge=',
+      'filter.lfs.clean=',
+      'filter.lfs.process=',
+    ],
   });
   const cloneOptions = ref ? ['--depth', '1', '--branch', ref] : ['--depth', '1'];
 
