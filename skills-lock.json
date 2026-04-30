@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "panapps-angular-standards": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "panapps-framework-standards/SKILL.md",
+      "computedHash": "9532953d7ac394ccd90c169972848255511039e32af52741b1542a1bd044a54b"
+    },
+    "panapps-react-standards": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "panapps-framework-standards/SKILL.md",
+      "computedHash": "ba0c1e705d2b3dd51911b97971c5fa0ce87739c6440c5f892d83947d7e76d52f"
+    },
+    "panapps-vue-standards": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "panapps-framework-standards/SKILL.md",
+      "computedHash": "d0c46b3560cd800d68307d9ab7f7428847e0e9d7b3708f01b61a4b691f9b925f"
+    },
+    "panapps-vue.js-standards": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "panapps-framework-standards/SKILL.md",
+      "computedHash": "8ea1f36aaa64077cdb32b2512e8a75e6b3cf405bc5798519f249fde5955522da"
+    }
+  }
+}

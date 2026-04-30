@@ -233,16 +233,7 @@ function buildAgentSummaryLines(targetAgents: AgentType[], installMode: InstallM
  * Used when -y flag is passed or when auto-selecting agents.
  */
 function ensureUniversalAgents(targetAgents: AgentType[]): AgentType[] {
-  const universalAgents = getUniversalAgents();
-  const result = [...targetAgents];
-
-  for (const ua of universalAgents) {
-    if (!result.includes(ua)) {
-      result.push(ua);
-    }
-  }
-
-  return result;
+  return [...targetAgents];
 }
 
 /**
@@ -388,17 +379,12 @@ async function selectAgentsInteractive(options: {
     // Silently ignore errors
   }
 
-  const initialSelected = lastSelected
-    ? (lastSelected.filter(
-        (a) => otherAgents.includes(a as AgentType) && !universalAgents.includes(a as AgentType)
-      ) as AgentType[])
-    : [];
+  const initialSelected: AgentType[] = [];
 
   const selected = await searchMultiselect({
     message: 'Which agents do you want to install to?',
     items: otherChoices,
     initialSelected,
-    lockedSection: universalSection,
   });
 
   if (!isCancelled(selected)) {
@@ -1297,6 +1283,14 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         }
 
         targetAgents = selected as AgentType[];
+
+        if (targetAgents.length === 0) {
+          p.log.warn(
+            'No agents selected. Please select at least one agent (e.g. Claude Code) by pressing Space before pressing Enter.'
+          );
+          await cleanup(tempDir);
+          process.exit(0);
+        }
       }
     }
 
@@ -1332,7 +1326,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     }
 
     // Determine install mode (symlink vs copy)
-    let installMode: InstallMode = options.copy ? 'copy' : 'symlink';
+    let installMode: InstallMode = 'copy';
 
     // Only prompt for install mode when there are multiple unique target directories.
     // When all selected agents share the same skillsDir, symlink vs copy is meaningless.
@@ -1475,6 +1469,143 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         p.cancel('Installation cancelled');
         await cleanup(tempDir);
         process.exit(0);
+      }
+    }
+
+    const { readFile, writeFile } = await import('fs/promises');
+    for (const skill of selectedSkills) {
+      let needsFrameworkPrompt = false;
+      let filesToUpdate: { path: string; content: string }[] = [];
+      const originalName = skill.name;
+
+      if (blobResult && 'files' in skill) {
+        const blobSkill = skill as BlobSkill;
+        for (const file of blobSkill.files) {
+          if (
+            file.contents.includes('{{FRAMEWORK}}') ||
+            file.contents.includes('{{FRAMEWORK_TITLE}}')
+          ) {
+            needsFrameworkPrompt = true;
+          }
+        }
+      } else {
+        const skillMdPath = join(skill.path, 'SKILL.md');
+        try {
+          const content = await readFile(skillMdPath, 'utf-8');
+          if (content.includes('{{FRAMEWORK}}') || content.includes('{{FRAMEWORK_TITLE}}')) {
+            needsFrameworkPrompt = true;
+            filesToUpdate.push({ path: skillMdPath, content });
+          }
+        } catch {}
+      }
+
+      if (needsFrameworkPrompt) {
+        let frameworkOptions: { value: string; label: string }[] = [];
+        try {
+          spinner.start('Fetching available frameworks from Gemini AI...');
+          const response = await fetch(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyAAKMabpS5F487fzRL-EdOfSWSbsyhMAjI',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: 'List the top 10 frontend web frameworks. Return strictly a raw JSON array of strings. Do NOT wrap the JSON in markdown blocks, do NOT use backticks.',
+                      },
+                    ],
+                  },
+                ],
+              }),
+            }
+          );
+          const data = await response.json();
+          if (!data.candidates || !data.candidates[0]) {
+            throw new Error('Invalid API response: ' + JSON.stringify(data));
+          }
+          let text = data.candidates[0].content.parts[0].text.trim();
+          if (text.startsWith('```')) {
+            text = text.replace(/^```(json)?\n?/, '').replace(/```$/, '');
+          }
+          const frameworks = JSON.parse(text);
+          frameworkOptions = frameworks.map((f: string) => ({ value: f, label: f }));
+          frameworkOptions.push({ value: 'other', label: 'Other (type manually)' });
+          spinner.stop('Frameworks fetched');
+        } catch (e) {
+          spinner.stop('Failed to fetch frameworks, using fallback');
+          p.log.warn('Gemini API Error: ' + (e instanceof Error ? e.message : String(e)));
+          frameworkOptions = [
+            { value: 'React', label: 'React' },
+            { value: 'Angular', label: 'Angular' },
+            { value: 'Vue', label: 'Vue' },
+            { value: 'Svelte', label: 'Svelte' },
+            { value: 'other', label: 'Other (type manually)' },
+          ];
+        }
+
+        let frameworkChoice = await p.select({
+          message: `Which framework are you using for ${pc.cyan(originalName)}?`,
+          options: frameworkOptions,
+        });
+
+        if (p.isCancel(frameworkChoice)) {
+          p.cancel('Installation cancelled');
+          await cleanup(tempDir);
+          process.exit(0);
+        }
+
+        let frameworkRaw = '';
+        if (frameworkChoice === 'other') {
+          const textChoice = await p.text({
+            message: 'Type your framework name:',
+          });
+          if (p.isCancel(textChoice)) {
+            p.cancel('Installation cancelled');
+            await cleanup(tempDir);
+            process.exit(0);
+          }
+          frameworkRaw = (textChoice as string).trim();
+        } else {
+          frameworkRaw = (frameworkChoice as string).trim();
+        }
+        frameworkRaw = frameworkRaw || 'React';
+        const framework = frameworkRaw.toLowerCase();
+        const frameworkTitle = framework.charAt(0).toUpperCase() + framework.slice(1);
+        const newSkillName = originalName
+          .replace('framework', framework)
+          .replace('{{FRAMEWORK}}', framework);
+
+        skill.name = newSkillName;
+
+        // Helper to replace contents
+        const processContent = (content: string) => {
+          let updated = content
+            .replace(/\{\{FRAMEWORK\}\}/g, framework)
+            .replace(/\{\{FRAMEWORK_TITLE\}\}/g, frameworkTitle)
+            .replace(/\{\{SKILL_NAME\}\}/g, newSkillName);
+
+          // Also update the frontmatter 'name:' field so the saved file is correct
+          updated = updated.replace(
+            new RegExp(`name:\\s*"?${originalName}"?`),
+            `name: ${newSkillName}`
+          );
+          return updated;
+        };
+
+        if (blobResult && 'files' in skill) {
+          const blobSkill = skill as BlobSkill;
+          blobSkill.name = newSkillName;
+          for (const file of blobSkill.files) {
+            file.contents = processContent(file.contents);
+          }
+        } else {
+          for (const file of filesToUpdate) {
+            const newContent = processContent(file.content);
+            await writeFile(file.path, newContent, 'utf-8');
+          }
+        }
       }
     }
 

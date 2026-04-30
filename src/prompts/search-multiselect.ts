@@ -325,6 +325,9 @@ export async function searchMultiselect<T>(
       const filtered = getFiltered();
 
       if (key.name === 'return') {
+        if (selected.size === 0 && filtered[cursor]) {
+          selected.add(filtered[cursor].value);
+        }
         submit();
         return;
       }
