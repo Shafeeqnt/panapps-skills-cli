@@ -1483,7 +1483,8 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         for (const file of blobSkill.files) {
           if (
             file.contents.includes('{{FRAMEWORK}}') ||
-            file.contents.includes('{{FRAMEWORK_TITLE}}')
+            file.contents.includes('{{FRAMEWORK_TITLE}}') ||
+            originalName.toLowerCase().includes('framework')
           ) {
             needsFrameworkPrompt = true;
           }
@@ -1492,7 +1493,11 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         const skillMdPath = join(skill.path, 'SKILL.md');
         try {
           const content = await readFile(skillMdPath, 'utf-8');
-          if (content.includes('{{FRAMEWORK}}') || content.includes('{{FRAMEWORK_TITLE}}')) {
+          if (
+            content.includes('{{FRAMEWORK}}') ||
+            content.includes('{{FRAMEWORK_TITLE}}') ||
+            originalName.toLowerCase().includes('framework')
+          ) {
             needsFrameworkPrompt = true;
             filesToUpdate.push({ path: skillMdPath, content });
           }
