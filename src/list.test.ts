@@ -96,7 +96,7 @@ describe('list command', () => {
     });
 
     it('should output valid JSON with --json flag', () => {
-      const skillDir = join(testDir, '.agents', 'skills', 'json-skill');
+      const skillDir = join(testDir, '.agent', 'skills', 'json-skill');
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(
         join(skillDir, 'SKILL.md'),
@@ -123,8 +123,8 @@ description: A skill for JSON testing
     });
 
     it('should output multiple skills as JSON array', () => {
-      const skill1Dir = join(testDir, '.agents', 'skills', 'skill-alpha');
-      const skill2Dir = join(testDir, '.agents', 'skills', 'skill-beta');
+      const skill1Dir = join(testDir, '.agent', 'skills', 'skill-alpha');
+      const skill2Dir = join(testDir, '.agent', 'skills', 'skill-beta');
       mkdirSync(skill1Dir, { recursive: true });
       mkdirSync(skill2Dir, { recursive: true });
 
@@ -155,7 +155,7 @@ description: A skill for JSON testing
 
     it('should list project skills', () => {
       // Create a skill in the canonical location
-      const skillDir = join(testDir, '.agents', 'skills', 'test-skill');
+      const skillDir = join(testDir, '.agent', 'skills', 'test-skill');
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(
         join(skillDir, 'SKILL.md'),
@@ -180,8 +180,8 @@ This is a test skill.
 
     it('should list multiple skills', () => {
       // Create multiple skills
-      const skill1Dir = join(testDir, '.agents', 'skills', 'skill-one');
-      const skill2Dir = join(testDir, '.agents', 'skills', 'skill-two');
+      const skill1Dir = join(testDir, '.agent', 'skills', 'skill-one');
+      const skill2Dir = join(testDir, '.agent', 'skills', 'skill-two');
       mkdirSync(skill1Dir, { recursive: true });
       mkdirSync(skill2Dir, { recursive: true });
 
@@ -214,7 +214,7 @@ description: Second skill
 
     it('should respect -g flag for global only', () => {
       // Create a project skill (should not be shown with -g)
-      const skillDir = join(testDir, '.agents', 'skills', 'project-skill');
+      const skillDir = join(testDir, '.agent', 'skills', 'project-skill');
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(
         join(skillDir, 'SKILL.md'),
@@ -241,7 +241,7 @@ description: A project skill
 
     it('should filter by valid agent', () => {
       // Create a skill
-      const skillDir = join(testDir, '.agents', 'skills', 'test-skill');
+      const skillDir = join(testDir, '.agent', 'skills', 'test-skill');
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(
         join(skillDir, 'SKILL.md'),
@@ -260,7 +260,7 @@ description: A test skill
 
     it('should ignore directories without SKILL.md', () => {
       // Create a valid skill
-      const validDir = join(testDir, '.agents', 'skills', 'valid-skill');
+      const validDir = join(testDir, '.agent', 'skills', 'valid-skill');
       mkdirSync(validDir, { recursive: true });
       writeFileSync(
         join(validDir, 'SKILL.md'),
@@ -273,7 +273,7 @@ description: Valid skill
       );
 
       // Create an invalid directory (no SKILL.md)
-      const invalidDir = join(testDir, '.agents', 'skills', 'invalid-skill');
+      const invalidDir = join(testDir, '.agent', 'skills', 'invalid-skill');
       mkdirSync(invalidDir, { recursive: true });
       writeFileSync(join(invalidDir, 'README.md'), '# Not a skill');
 
@@ -285,7 +285,7 @@ description: Valid skill
 
     it('should handle SKILL.md with missing frontmatter', () => {
       // Create a valid skill
-      const validDir = join(testDir, '.agents', 'skills', 'valid-skill');
+      const validDir = join(testDir, '.agent', 'skills', 'valid-skill');
       mkdirSync(validDir, { recursive: true });
       writeFileSync(
         join(validDir, 'SKILL.md'),
@@ -298,7 +298,7 @@ description: Valid skill
       );
 
       // Create a skill with invalid SKILL.md (no frontmatter)
-      const invalidDir = join(testDir, '.agents', 'skills', 'invalid-skill');
+      const invalidDir = join(testDir, '.agent', 'skills', 'invalid-skill');
       mkdirSync(invalidDir, { recursive: true });
       writeFileSync(join(invalidDir, 'SKILL.md'), '# Invalid\nNo frontmatter here');
 
@@ -309,7 +309,7 @@ description: Valid skill
     });
 
     it('should show skill path', () => {
-      const skillDir = join(testDir, '.agents', 'skills', 'test-skill');
+      const skillDir = join(testDir, '.agent', 'skills', 'test-skill');
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(
         join(skillDir, 'SKILL.md'),
@@ -323,7 +323,7 @@ description: A test skill
 
       const result = runCli(['list'], testDir);
       // Path is shown inline with skill name (handles both Unix / and Windows \)
-      expect(result.stdout).toMatch(/\.agents[/\\]skills[/\\]test-skill/);
+      expect(result.stdout).toMatch(/\.agent[/\\]skills[/\\]test-skill/);
     });
   });
 

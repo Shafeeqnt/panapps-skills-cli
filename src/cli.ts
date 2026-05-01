@@ -286,7 +286,7 @@ Describe when this skill should be used.
 // Check and Update Commands
 // ============================================
 
-const AGENTS_DIR = '.agents';
+const AGENTS_DIR = '.agent';
 const LOCK_FILE = '.skill-lock.json';
 const CURRENT_LOCK_VERSION = 3; // Bumped from 2 to 3 for folder hash support
 
@@ -372,7 +372,7 @@ function parseUpdateOptions(args: string[]): UpdateCheckOptions {
  * Check whether the current working directory has project-level skills.
  * Returns true if either:
  * - skills-lock.json exists in cwd, OR
- * - .agents/skills/ contains at least one subdirectory with a SKILL.md
+ * - .agent/skills/ contains at least one subdirectory with a SKILL.md
  */
 function hasProjectSkills(cwd?: string): boolean {
   const dir = cwd || process.cwd();
@@ -383,8 +383,8 @@ function hasProjectSkills(cwd?: string): boolean {
     return true;
   }
 
-  // Check 2: .agents/skills/ has at least one skill
-  const skillsDir = join(dir, '.agents', 'skills');
+  // Check 2: .agent/skills/ has at least one skill
+  const skillsDir = join(dir, '.agent', 'skills');
   try {
     const entries = readdirSync(skillsDir, { withFileTypes: true });
     for (const entry of entries) {

@@ -7,6 +7,12 @@
       "skillPath": "panapps-framework-standards/SKILL.md",
       "computedHash": "9532953d7ac394ccd90c169972848255511039e32af52741b1542a1bd044a54b"
     },
+    "panapps-framework-standards": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "panapps-framework-standards/SKILL.md",
+      "computedHash": "23eb98dfc24de5da18a1c8cf50879f21291cd699518cdd37251050ac3250fa65"
+    },
     "panapps-react-standards": {
       "source": "Shafeeqnt/agent-skills",
       "sourceType": "github",

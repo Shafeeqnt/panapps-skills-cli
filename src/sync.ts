@@ -65,7 +65,7 @@ async function discoverNodeModuleSkills(
     }
 
     // Check common skill locations within the package
-    const searchDirs = [pkgDir, join(pkgDir, 'skills'), join(pkgDir, '.agents', 'skills')];
+    const searchDirs = [pkgDir, join(pkgDir, 'skills'), join(pkgDir, '.agent', 'skills')];
 
     for (const searchDir of searchDirs) {
       try {
@@ -236,7 +236,7 @@ export async function runSync(args: string[], options: SyncOptions = {}): Promis
           items: otherChoices,
           initialSelected: [],
           lockedSection: {
-            title: 'Universal (.agents/skills)',
+            title: 'Universal (.agent/skills)',
             items: universalAgents.map((a) => ({
               value: a,
               label: agents[a].displayName,
@@ -273,7 +273,7 @@ export async function runSync(args: string[], options: SyncOptions = {}): Promis
         items: otherChoices,
         initialSelected: installedAgents.filter((a) => !universalAgents.includes(a)),
         lockedSection: {
-          title: 'Universal (.agents/skills)',
+          title: 'Universal (.agent/skills)',
           items: universalAgents.map((a) => ({
             value: a,
             label: agents[a].displayName,

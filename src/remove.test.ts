@@ -12,8 +12,8 @@ describe('remove command', { timeout: 30000 }, () => {
     testDir = join(tmpdir(), `skills-remove-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
 
-    // Create .agents/skills directory (canonical location)
-    skillsDir = join(testDir, '.agents', 'skills');
+    // Create .agent/skills directory (canonical location)
+    skillsDir = join(testDir, '.agent', 'skills');
     mkdirSync(skillsDir, { recursive: true });
   });
 
@@ -51,7 +51,7 @@ This is a test skill.
     const linkPath = join(targetDir, skillName);
     try {
       // Create relative symlink
-      const relativePath = join('..', '..', '.agents', 'skills', skillName);
+      const relativePath = join('..', '..', '.agent', 'skills', skillName);
       const { symlinkSync } = require('fs');
       symlinkSync(relativePath, linkPath);
     } catch {

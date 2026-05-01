@@ -134,7 +134,7 @@ async function cleanAndCreateDirectory(path: string): Promise<void> {
 /**
  * Resolve a path's parent directory through symlinks, keeping the final component.
  * This handles the case where a parent directory (e.g., ~/.claude/skills) is a symlink
- * to another location (e.g., ~/.agents/skills). In that case, computing relative paths
+ * to another location (e.g., ~/.agent/skills). In that case, computing relative paths
  * from the symlink path produces broken symlinks.
  *
  * Returns the real path of the parent + the original basename.
@@ -174,8 +174,8 @@ async function createSymlink(target: string, linkPath: string): Promise<boolean>
     }
 
     // Also check with symlinks resolved in parent directories.
-    // This handles cases where e.g. ~/.claude/skills is a symlink to ~/.agents/skills,
-    // so ~/.claude/skills/<skill> and ~/.agents/skills/<skill> are physically the same.
+    // This handles cases where e.g. ~/.claude/skills is a symlink to ~/.agent/skills,
+    // so ~/.claude/skills/<skill> and ~/.agent/skills/<skill> are physically the same.
     const realTargetWithParents = await resolveParentSymlinks(target);
     const realLinkPathWithParents = await resolveParentSymlinks(linkPath);
 
@@ -246,7 +246,7 @@ export async function installSkillForAgent(
   const rawSkillName = skill.name || basename(skill.path);
   const skillName = sanitizeName(rawSkillName);
 
-  // Canonical location: .agents/skills/<skill-name>
+  // Canonical location: .agent/skills/<skill-name>
   const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
@@ -292,15 +292,14 @@ export async function installSkillForAgent(
     await cleanAndCreateDirectory(canonicalDir);
     await copyDirectory(skill.path, canonicalDir);
 
-    // For universal agents with global install, the skill is already in the canonical
-    // ~/.agents/skills directory. Skip creating a symlink to the agent-specific global dir
-    // (e.g. ~/.copilot/skills) to avoid duplicates.
-    if (isGlobal && isUniversalAgent(agentType)) {
+    // For universal agents (or agents whose skillsDir matches the canonical directory),
+    // the skill is already in the target location. Skip creating a symlink to itself.
+    if (agentDir === canonicalDir) {
       return {
         success: true,
-        path: canonicalDir,
-        canonicalPath: canonicalDir,
+        path: agentDir,
         mode: 'symlink',
+        canonicalPath: canonicalDir,
       };
     }
 
@@ -440,7 +439,7 @@ export function getInstallPath(
 }
 
 /**
- * Gets the canonical .agents/skills/<skill> path
+ * Gets the canonical .agent/skills/<skill> path
  */
 export function getCanonicalPath(
   skillName: string,
@@ -486,7 +485,7 @@ export async function installRemoteSkillForAgent(
   // Use installName as the skill directory name
   const skillName = sanitizeName(skill.installName);
 
-  // Canonical location: .agents/skills/<skill-name>
+  // Canonical location: .agent/skills/<skill-name>
   const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
@@ -605,7 +604,7 @@ export async function installWellKnownSkillForAgent(
   // Use installName as the skill directory name
   const skillName = sanitizeName(skill.installName);
 
-  // Canonical location: .agents/skills/<skill-name>
+  // Canonical location: .agent/skills/<skill-name>
   const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
@@ -874,7 +873,7 @@ export async function listInstalledSkills(
   //            ▼
   //   for each scope (project / global)
   //            │
-  //            ├──▶ scan canonical dir ──▶ .agents/skills, ~/.agents/skills
+  //            ├──▶ scan canonical dir ──▶ .agent/skills, ~/.agent/skills
   //            │
   //            ├──▶ scan each installed agent's dir ──▶ .cursor/skills, .claude/skills, ...
   //            │

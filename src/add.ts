@@ -53,8 +53,6 @@ import {
   getGitHubToken,
   isPromptDismissed,
   dismissPrompt,
-  getLastSelectedAgents,
-  saveSelectedAgents,
 } from './skill-lock.ts';
 import { addSkillToLocalLock, computeSkillFolderHash } from './local-lock.ts';
 import type { Skill, AgentType } from './types.ts';
@@ -355,46 +353,28 @@ async function selectAgentsInteractive(options: {
   const universalAgents = getUniversalAgents().filter(supportsGlobalFilter);
   const otherAgents = getNonUniversalAgents().filter(supportsGlobalFilter);
 
-  // Universal agents shown as locked section
-  const universalSection = {
-    title: 'Universal (.agents/skills)',
-    items: universalAgents.map((a) => ({
-      value: a,
-      label: agents[a].displayName,
-    })),
-  };
+  const universalChoices = universalAgents.map((a) => ({
+    value: a,
+    label: agents[a].displayName,
+    hint: `(Universal) ${options.global ? agents[a].globalSkillsDir! : agents[a].skillsDir}`,
+  }));
 
-  // Other agents are selectable with their skillsDir as hint
   const otherChoices = otherAgents.map((a) => ({
     value: a,
     label: agents[a].displayName,
     hint: options.global ? agents[a].globalSkillsDir! : agents[a].skillsDir,
   }));
 
-  // Get last selected agents (filter to only non-universal ones for initial selection)
-  let lastSelected: string[] | undefined;
-  try {
-    lastSelected = await getLastSelectedAgents();
-  } catch {
-    // Silently ignore errors
-  }
+  const allChoices = [...universalChoices, ...otherChoices];
 
+  // Default to nothing checked as requested
   const initialSelected: AgentType[] = [];
 
   const selected = await searchMultiselect({
     message: 'Which agents do you want to install to?',
-    items: otherChoices,
+    items: allChoices,
     initialSelected,
   });
-
-  if (!isCancelled(selected)) {
-    // Save selection (all agents including universal)
-    try {
-      await saveSelectedAgents(selected as string[]);
-    } catch {
-      // Silently ignore errors
-    }
-  }
 
   return selected as AgentType[] | symbol;
 }
@@ -591,10 +571,17 @@ async function handleWellKnownSkills(
     }
   }
 
+  if (targetAgents.length === 0) {
+    p.log.warn('No agents selected. Skills will not be installed.');
+    process.exit(0);
+  }
+
   let installGlobally = options.global ?? false;
 
   // Check if any selected agents support global installation
-  const supportsGlobal = targetAgents.some((a) => agents[a].globalSkillsDir !== undefined);
+  const supportsGlobal = targetAgents.some(
+    (a) => agents[a] && agents[a].globalSkillsDir !== undefined
+  );
 
   if (options.global === undefined && !options.yes && supportsGlobal) {
     const scope = await p.select({
@@ -829,11 +816,15 @@ async function handleWellKnownSkills(
       const firstResult = skillResults[0]!;
 
       if (firstResult.mode === 'copy') {
-        // Copy mode: show skill name and list all agent paths
+        // Copy mode: show skill name and list all agent paths (deduplicated)
         resultLines.push(`${pc.green('✓')} ${skillName} ${pc.dim('(copied)')}`);
+        const shownPaths = new Set<string>();
         for (const r of skillResults) {
           const shortPath = shortenPath(r.path, cwd);
-          resultLines.push(`  ${pc.dim('→')} ${shortPath}`);
+          if (!shownPaths.has(shortPath)) {
+            resultLines.push(`  ${pc.dim('→')} ${shortPath}`);
+            shownPaths.add(shortPath);
+          }
         }
       } else {
         // Symlink mode: show canonical path and universal/symlinked agents

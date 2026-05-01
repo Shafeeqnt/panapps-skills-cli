@@ -155,7 +155,7 @@ const PRIORITY_PREFIXES = [
   'skills/.curated/',
   'skills/.experimental/',
   'skills/.system/',
-  '.agents/skills/',
+  '.agent/skills/',
   '.claude/skills/',
   '.cline/skills/',
   '.codebuddy/skills/',

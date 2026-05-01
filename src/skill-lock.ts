@@ -4,7 +4,7 @@ import { homedir } from 'os';
 import { createHash } from 'crypto';
 import { execSync } from 'child_process';
 
-const AGENTS_DIR = '.agents';
+const AGENTS_DIR = '.agent';
 const LOCK_FILE = '.skill-lock.json';
 const CURRENT_VERSION = 3; // Bumped from 2 to 3 for folder hash support (GitHub tree SHA)
 
@@ -61,7 +61,7 @@ export interface SkillLockFile {
 /**
  * Get the path to the global skill lock file.
  * Use $XDG_STATE_HOME/skills/.skill-lock.json if set.
- * otherwise fall back to ~/.agents/.skill-lock.json
+ * otherwise fall back to ~/.agent/.skill-lock.json
  */
 export function getSkillLockPath(): string {
   const xdgStateHome = process.env.XDG_STATE_HOME;
