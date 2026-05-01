@@ -50,4 +50,3 @@ package-lock.json
 bin/_chunks/
 bin/cli-wrapper.mjs
 bin/cli.d.mts
-dist/
