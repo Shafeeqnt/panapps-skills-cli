@@ -1502,9 +1502,11 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       if (needsFrameworkPrompt) {
         let frameworkOptions: { value: string; label: string }[] = [];
         try {
+          const apiKey = process.env.GEMINI_API_KEY;
+          if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
           spinner.start('Fetching available frameworks from Gemini AI...');
           const response = await fetch(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyAAKMabpS5F487fzRL-EdOfSWSbsyhMAjI',
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

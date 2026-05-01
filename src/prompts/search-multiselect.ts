@@ -42,7 +42,7 @@ const S_BULLET = pc.green('•');
 const S_BAR = pc.dim('│');
 const S_BAR_H = pc.dim('─');
 
-export const cancelSymbol = Symbol('cancel');
+export const cancelSymbol = Symbol.for('clack:cancel');
 
 /**
  * Approximate terminal display width (cells) for a string with no ANSI sequences.
