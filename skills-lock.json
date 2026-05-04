@@ -19,6 +19,12 @@
       "skillPath": "panapps-framework-standards/SKILL.md",
       "computedHash": "ba0c1e705d2b3dd51911b97971c5fa0ce87739c6440c5f892d83947d7e76d52f"
     },
+    "panapps-vanila-base-template": {
+      "source": "Shafeeqnt/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/panapps-agent-templates/vanila templates/base templates/SKILL.md",
+      "computedHash": "427d7a785fd8eb8afc170c5e38e2a4edc1c62154994ca35c7603bf7344e80b7a"
+    },
     "panapps-vue-standards": {
       "source": "Shafeeqnt/agent-skills",
       "sourceType": "github",

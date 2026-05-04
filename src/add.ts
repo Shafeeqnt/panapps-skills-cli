@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { homedir } from 'os';
 import { sep, join, dirname } from 'path';
 import { parseSource, getOwnerRepo, parseOwnerRepo, isRepoPrivate } from './source-parser.ts';
@@ -1198,13 +1198,32 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
     for (const skill of selectedSkills) {
       const skillName = getSkillDisplayName(skill);
       if (skillName === 'panapps-agent-templates' || skillName === 'panapps-framework-standards') {
+        const getTemplateOptions = (dirPath: string) => {
+          try {
+            return readdirSync(dirPath, { withFileTypes: true })
+              .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
+              .map((dirent) => ({
+                value: dirent.name,
+                label: dirent.name
+                  .split(' ')
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(' '),
+              }));
+          } catch {
+            return [];
+          }
+        };
+
+        const topLevelOptions = getTemplateOptions(skill.path);
+
+        if (topLevelOptions.length === 0) {
+          finalSelectedSkills.push(skill);
+          continue;
+        }
+
         const typeChoice = await p.select({
           message: 'Select template type',
-          options: [
-            { value: 'vanila templates', label: 'Vanila Templates' },
-            { value: 'figma templates', label: 'Figma Templates' },
-            { value: 'drupal templates', label: 'Drupal Templates' },
-          ],
+          options: topLevelOptions,
         });
 
         if (p.isCancel(typeChoice)) {
@@ -1214,21 +1233,24 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         }
 
         let selectedSubPath = typeChoice as string;
-        if (selectedSubPath === 'vanila templates') {
-          const vanilaChoice = await p.select({
-            message: 'Select Vanila template type',
-            options: [
-              { value: 'base templates', label: 'Base Templates' },
-              { value: 'extension templates', label: 'Extension Templates' },
-            ],
+        const subLevelPath = join(skill.path, selectedSubPath);
+        const subLevelOptions = getTemplateOptions(subLevelPath);
+
+        // Check if this sub-path itself has a SKILL.md. If not, it MUST have sub-templates.
+        const hasSkillMdAtCurrentLevel = existsSync(join(subLevelPath, 'SKILL.md'));
+
+        if (subLevelOptions.length > 0 && !hasSkillMdAtCurrentLevel) {
+          const subChoice = await p.select({
+            message: `Select ${selectedSubPath} type`,
+            options: subLevelOptions,
           });
 
-          if (p.isCancel(vanilaChoice)) {
+          if (p.isCancel(subChoice)) {
             p.cancel('Installation cancelled');
             await cleanup(tempDir);
             process.exit(0);
           }
-          selectedSubPath = join(selectedSubPath, vanilaChoice as string);
+          selectedSubPath = join(selectedSubPath, subChoice as string);
         }
 
         // Update skill to point to the sub-template
