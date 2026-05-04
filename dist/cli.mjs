@@ -2961,6 +2961,66 @@ async function runAdd(args, options = {}) {
 			}
 			selectedSkills = selected;
 		}
+		const finalSelectedSkills = [];
+		for (const skill of selectedSkills) {
+			const skillName = getSkillDisplayName(skill);
+			if (skillName === "panapps-agent-templates" || skillName === "panapps-framework-standards") {
+				const typeChoice = await ve({
+					message: "Select template type",
+					options: [
+						{
+							value: "vanila templates",
+							label: "Vanila Templates"
+						},
+						{
+							value: "figma templates",
+							label: "Figma Templates"
+						},
+						{
+							value: "drupal templates",
+							label: "Drupal Templates"
+						}
+					]
+				});
+				if (pD(typeChoice)) {
+					xe("Installation cancelled");
+					await cleanup(tempDir);
+					process.exit(0);
+				}
+				let selectedSubPath = typeChoice;
+				if (selectedSubPath === "vanila templates") {
+					const vanilaChoice = await ve({
+						message: "Select Vanila template type",
+						options: [{
+							value: "base templates",
+							label: "Base Templates"
+						}, {
+							value: "extension templates",
+							label: "Extension Templates"
+						}]
+					});
+					if (pD(vanilaChoice)) {
+						xe("Installation cancelled");
+						await cleanup(tempDir);
+						process.exit(0);
+					}
+					selectedSubPath = join(selectedSubPath, vanilaChoice);
+				}
+				const subPath = join(skill.path, selectedSubPath);
+				skill.path = subPath;
+				try {
+					const subSkillMdPath = join(subPath, "SKILL.md");
+					if (existsSync(subSkillMdPath)) {
+						const nameMatch = readFileSync(subSkillMdPath, "utf-8").match(/name:\s*"?([^"\n]+)"?/);
+						if (nameMatch && nameMatch[1]) skill.name = nameMatch[1].trim();
+					}
+				} catch (e) {
+					skill.name = selectedSubPath.split(sep).pop();
+				}
+			}
+			finalSelectedSkills.push(skill);
+		}
+		selectedSkills = finalSelectedSkills;
 		const ownerRepoForAudit = getOwnerRepo(parsed);
 		const auditPromise = ownerRepoForAudit ? fetchAuditData(ownerRepoForAudit, selectedSkills.map((s) => getSkillDisplayName(s))) : Promise.resolve(null);
 		let targetAgents;
@@ -3158,7 +3218,7 @@ async function runAdd(args, options = {}) {
 					const data = await (await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ contents: [{ parts: [{ text: "List the top 10 frontend web frameworks. Return strictly a raw JSON array of strings. Do NOT wrap the JSON in markdown blocks, do NOT use backticks." }] }] })
+						body: JSON.stringify({ contents: [{ parts: [{ text: "List all frontend web frameworks. Return strictly a raw JSON array of strings. Do NOT wrap the JSON in markdown blocks, do NOT use backticks." }] }] })
 					})).json();
 					if (!data.candidates || !data.candidates[0]) throw new Error("Invalid API response: " + JSON.stringify(data));
 					let text = data.candidates[0].content.parts[0].text.trim();
