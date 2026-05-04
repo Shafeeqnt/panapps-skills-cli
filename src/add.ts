@@ -1511,7 +1511,7 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
                   {
                     parts: [
                       {
-                        text: 'List the top 10 frontend web frameworks. Return strictly a raw JSON array of strings. Do NOT wrap the JSON in markdown blocks, do NOT use backticks.',
+                        text: 'List all frontend web frameworks. Return strictly a raw JSON array of strings. Do NOT wrap the JSON in markdown blocks, do NOT use backticks.',
                       },
                     ],
                   },
